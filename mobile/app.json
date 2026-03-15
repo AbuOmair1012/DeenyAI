@@ -4,24 +4,21 @@
     "slug": "deenyai",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "scheme": "deenyai",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "backgroundColor": "#0D7377",
-      "resizeMode": "contain"
+      "backgroundColor": "#0D7377"
     },
     "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#0D7377"
-      },
+      "backgroundColor": "#0D7377",
       "package": "com.deenyai.app"
     },
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-asset"
+      "expo-asset",
+      "expo-font"
     ]
   }
 }

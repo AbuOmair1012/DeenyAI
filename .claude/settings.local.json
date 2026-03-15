@@ -16,7 +16,8 @@
       "Bash(node -e \"require\\(''child_process''\\).execSync\\(''netstat -ano | findstr :3000'', {encoding:''utf8''}\\).split\\(''\\\\n''\\).filter\\(l=>l.includes\\(''LISTENING''\\)\\).forEach\\(l=>{const pid=l.trim\\(\\).split\\(/\\\\s+/\\).pop\\(\\); require\\(''child_process''\\).execSync\\(''taskkill /F /PID ''+pid\\)}\\)\")",
       "Bash(npx expo install expo-asset)",
       "Bash(npx expo install --fix)",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "Bash(npx expo install expo-font expo-splash-screen react-native-web react-dom @expo/metro-runtime)"
     ]
   }
 }
