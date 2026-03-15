@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /c/Users/abdo/Desktop/app-work/*/package.json)",
+      "Bash(npm install)",
+      "Bash(npm install -D drizzle-kit)",
+      "Bash(npx drizzle-kit push)",
+      "Bash(npm install -D drizzle-kit tsx)",
+      "Bash(node -e \"console.log\\(require\\(''crypto''\\).randomBytes\\(32\\).toString\\(''hex''\\)\\)\")",
+      "Bash(node -e \"const bcrypt = require\\(''bcrypt''\\); bcrypt.hash\\(''admin123'', 12\\).then\\(h => console.log\\(h\\)\\)\")",
+      "Bash(PGPASSWORD=12345 psql -U postgres -d deenyai -c \"INSERT INTO users \\(id, email, password_hash, first_name, is_admin, onboarding_complete, country, madhab\\) VALUES \\(gen_random_uuid\\(\\), ''admin@deenyai.com'', ''$2b$12$SztwqfZREWJUvKIe56osIumvf0T3f93kCX92eXZlN1.AMjl4vjTfO'', ''Admin'', true, true, ''SA'', ''hanafi''\\);\")",
+      "Bash(ip addr show)",
+      "Bash(ipconfig)",
+      "Bash(npx kill-port 3000)",
+      "Bash(taskkill //F //FI \"WINDOWTITLE eq *3000*\")",
+      "Bash(node -e \"require\\(''child_process''\\).execSync\\(''netstat -ano | findstr :3000'', {encoding:''utf8''}\\).split\\(''\\\\n''\\).filter\\(l=>l.includes\\(''LISTENING''\\)\\).forEach\\(l=>{const pid=l.trim\\(\\).split\\(/\\\\s+/\\).pop\\(\\); require\\(''child_process''\\).execSync\\(''taskkill /F /PID ''+pid\\)}\\)\")",
+      "Bash(npx expo install expo-asset)",
+      "Bash(npx expo install --fix)",
+      "Bash(node -e \":*)"
+    ]
+  }
+}

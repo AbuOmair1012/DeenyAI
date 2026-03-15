@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "DeenyAI",
+    "slug": "deenyai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "deenyai",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#0D7377",
+      "resizeMode": "contain"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0D7377"
+      },
+      "package": "com.deenyai.app"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-asset"
+    ]
+  }
+}

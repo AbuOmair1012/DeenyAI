@@ -1,0 +1,23 @@
+import { useEffect } from "react";
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useAuth } from "../hooks/useAuth";
+
+export default function RootLayout() {
+  const initialize = useAuth((s) => s.initialize);
+
+  useEffect(() => {
+    initialize();
+  }, []);
+
+  return (
+    <>
+      <StatusBar style="light" />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(onboarding)" />
+        <Stack.Screen name="(app)" />
+      </Stack>
+    </>
+  );
+}
