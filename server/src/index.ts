@@ -1,4 +1,10 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+import path from "path";
+// Try both cwd and parent dir (npm workspace runs from server/)
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+if (!process.env.DATABASE_URL) {
+  dotenv.config({ path: path.resolve(process.cwd(), "..", ".env") });
+}
 import express from "express";
 import cors from "cors";
 import authRoutes from "./routes/auth";

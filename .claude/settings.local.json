@@ -17,7 +17,13 @@
       "Bash(npx expo install expo-asset)",
       "Bash(npx expo install --fix)",
       "Bash(node -e \":*)",
-      "Bash(npx expo install expo-font expo-splash-screen react-native-web react-dom @expo/metro-runtime)"
+      "Bash(npx expo install expo-font expo-splash-screen react-native-web react-dom @expo/metro-runtime)",
+      "Bash(curl -s http://localhost:3000/api/health)",
+      "Bash(npm run dev:server)",
+      "Bash(powershell -Command \"New-NetFirewallRule -DisplayName ''DeenyAI Server'' -Direction Inbound -Protocol TCP -LocalPort 3000 -Action Allow\")",
+      "Bash(curl -s -X POST http://localhost:3000/api/auth/register -H \"Content-Type: application/json\" -d '{\"\"email\"\":\"\"test@test.com\"\",\"\"password\"\":\"\"test123\"\"}')",
+      "Bash(node -e \"require\\(''dotenv''\\).config\\({path: require\\(''path''\\).resolve\\(process.cwd\\(\\), ''.env''\\)}\\); console.log\\(''DB URL:'', process.env.DATABASE_URL\\)\")",
+      "Bash(curl -s -X POST http://localhost:3000/api/auth/register -H \"Content-Type: application/json\" -d '{\"\"email\"\":\"\"test2@test.com\"\",\"\"password\"\":\"\"test123\"\"}')"
     ]
   }
 }
