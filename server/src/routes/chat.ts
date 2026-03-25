@@ -9,9 +9,10 @@ import {
   createMessage,
   getMessagesBySession,
   getUserById,
-  getReferences,
+  searchSimilarChunks,
 } from "../storage";
 import { streamChatResponse } from "../services/claude";
+import { generateEmbedding } from "../services/embeddings";
 
 const router = Router();
 
@@ -147,12 +148,12 @@ router.post(
         content: m.content,
       }));
 
-      // Search for relevant references
-      const relevantRefs = await getReferences({
+      // Generate embedding for user's question and search for similar chunks
+      const queryEmbedding = await generateEmbedding(content);
+      const relevantChunks = await searchSimilarChunks(queryEmbedding, {
         madhab: user.madhab || undefined,
         country: user.country || undefined,
-        search: content,
-        activeOnly: true,
+        limit: 8,
       });
 
       // Set up SSE
@@ -162,25 +163,23 @@ router.post(
 
       let fullResponse = "";
 
-      // Stream Claude response
+      // Stream AI response
       for await (const chunk of streamChatResponse(
         content,
         conversationHistory.slice(0, -1), // exclude the just-added user message since we pass it separately
         user.madhab || "hanafi",
         user.country || "SA",
-        relevantRefs.slice(0, 5) // limit to top 5 references
+        relevantChunks
       )) {
         fullResponse += chunk;
         res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
       }
 
       // Save assistant message
-      const refIds = relevantRefs.slice(0, 5).map((r) => r.id);
       await createMessage({
         sessionId: session.id,
         role: "assistant",
         content: fullResponse,
-        references: refIds.length > 0 ? refIds : null,
       });
 
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);

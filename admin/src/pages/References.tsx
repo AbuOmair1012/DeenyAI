@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X, Upload } from "lucide-react";
 import { adminApi } from "../hooks/useApi";
 
 const SOURCE_TYPES = [
@@ -48,8 +48,19 @@ export default function References() {
   const [search, setSearch] = useState("");
   const [filterMadhab, setFilterMadhab] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [showPdfUpload, setShowPdfUpload] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<RefForm>(emptyForm);
+  const [pdfForm, setPdfForm] = useState({
+    title: "",
+    source: "",
+    sourceType: "scholarly_opinion",
+    madhab: "",
+    country: "",
+    tags: "",
+  });
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: refs = [], isLoading } = useQuery({
     queryKey: ["references", search, filterMadhab],
@@ -83,6 +94,32 @@ export default function References() {
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["references"] }),
   });
+
+  const uploadMut = useMutation({
+    mutationFn: (formData: FormData) => adminApi.uploadPdf(formData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["references"] });
+      setShowPdfUpload(false);
+      setPdfFile(null);
+      setPdfForm({ title: "", source: "", sourceType: "scholarly_opinion", madhab: "", country: "", tags: "" });
+    },
+  });
+
+  const handlePdfUpload = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pdfFile) return;
+
+    const formData = new FormData();
+    formData.append("file", pdfFile);
+    formData.append("title", pdfForm.title);
+    formData.append("source", pdfForm.source);
+    formData.append("sourceType", pdfForm.sourceType);
+    if (pdfForm.madhab) formData.append("madhab", pdfForm.madhab);
+    if (pdfForm.country) formData.append("country", pdfForm.country);
+    if (pdfForm.tags) formData.append("tags", JSON.stringify(pdfForm.tags.split(",").map(t => t.trim()).filter(Boolean)));
+
+    uploadMut.mutate(formData);
+  };
 
   const closeForm = () => {
     setShowForm(false);
@@ -136,16 +173,24 @@ export default function References() {
         <h1 className="text-2xl font-bold text-gray-900">
           References Database
         </h1>
-        <button
-          onClick={() => {
-            setForm(emptyForm);
-            setEditingId(null);
-            setShowForm(true);
-          }}
-          className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors"
-        >
-          <Plus size={18} /> Add Reference
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowPdfUpload(true)}
+            className="flex items-center gap-2 bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors"
+          >
+            <Upload size={18} /> Upload PDF
+          </button>
+          <button
+            onClick={() => {
+              setForm(emptyForm);
+              setEditingId(null);
+              setShowForm(true);
+            }}
+            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition-colors"
+          >
+            <Plus size={18} /> Add Reference
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -352,6 +397,150 @@ export default function References() {
                   className="px-5 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50"
                 >
                   {editingId ? "Update" : "Create"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* PDF Upload Modal */}
+      {showPdfUpload && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl w-full max-w-lg p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl font-bold">Upload PDF</h2>
+              <button
+                onClick={() => { setShowPdfUpload(false); setPdfFile(null); }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handlePdfUpload} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  PDF File *
+                </label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf"
+                  onChange={(e) => setPdfFile(e.target.files?.[0] || null)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Title *
+                </label>
+                <input
+                  type="text"
+                  value={pdfForm.title}
+                  onChange={(e) => setPdfForm({ ...pdfForm, title: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Source *
+                  </label>
+                  <input
+                    type="text"
+                    value={pdfForm.source}
+                    onChange={(e) => setPdfForm({ ...pdfForm, source: e.target.value })}
+                    placeholder="e.g., Book name, Author"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Source Type *
+                  </label>
+                  <select
+                    value={pdfForm.sourceType}
+                    onChange={(e) => setPdfForm({ ...pdfForm, sourceType: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    {SOURCE_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Madhab
+                  </label>
+                  <select
+                    value={pdfForm.madhab}
+                    onChange={(e) => setPdfForm({ ...pdfForm, madhab: e.target.value })}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="">Universal (All)</option>
+                    <option value="hanafi">Hanafi</option>
+                    <option value="maliki">Maliki</option>
+                    <option value="shafii">Shafi'i</option>
+                    <option value="hanbali">Hanbali</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Country
+                  </label>
+                  <input
+                    type="text"
+                    value={pdfForm.country}
+                    onChange={(e) => setPdfForm({ ...pdfForm, country: e.target.value })}
+                    placeholder="e.g., SA, EG"
+                    maxLength={2}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary uppercase"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tags (comma-separated)
+                </label>
+                <input
+                  type="text"
+                  value={pdfForm.tags}
+                  onChange={(e) => setPdfForm({ ...pdfForm, tags: e.target.value })}
+                  placeholder="e.g., prayer, fasting, zakat"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              {uploadMut.isError && (
+                <div className="text-red-600 text-sm">
+                  {(uploadMut.error as Error).message}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => { setShowPdfUpload(false); setPdfFile(null); }}
+                  className="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={uploadMut.isPending || !pdfFile}
+                  className="px-5 py-2.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50"
+                >
+                  {uploadMut.isPending ? "Processing..." : "Upload & Process"}
                 </button>
               </div>
             </form>

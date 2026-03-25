@@ -5,6 +5,7 @@ import {
   boolean,
   timestamp,
   jsonb,
+  integer,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
@@ -122,3 +123,22 @@ export const countryRulings = pgTable("country_rulings", {
 
 export const insertCountryRulingSchema = createInsertSchema(countryRulings);
 export const selectCountryRulingSchema = createSelectSchema(countryRulings);
+
+// ─── Document Chunks (RAG Vector Store) ─────────────────────────────────────
+
+export const documentChunks = pgTable("document_chunks", {
+  id: varchar("id", { length: 36 })
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  referenceId: varchar("reference_id", { length: 36 })
+    .notNull()
+    .references(() => references.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  embedding: jsonb("embedding").$type<number[]>(),
+  chunkIndex: integer("chunk_index").notNull(),
+  pageNumber: integer("page_number"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertDocumentChunkSchema = createInsertSchema(documentChunks);
+export const selectDocumentChunkSchema = createSelectSchema(documentChunks);

@@ -81,6 +81,23 @@ export const adminApi = {
     }),
   deleteReference: (id: string) =>
     request<void>(`/admin/references/${id}`, { method: "DELETE" }),
+  uploadPdf: async (formData: FormData) => {
+    const token = getToken();
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_URL}/admin/references/upload-pdf`, {
+      method: "POST",
+      headers,
+      body: formData, // No Content-Type — browser sets multipart boundary
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `Upload failed: ${res.status}`);
+    }
+    return res.json();
+  },
 
   // Categories
   getCategories: () => request<any[]>("/admin/categories"),

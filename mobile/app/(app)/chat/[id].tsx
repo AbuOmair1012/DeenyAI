@@ -23,6 +23,52 @@ interface ChatMessage {
   createdAt: string;
 }
 
+function FormattedText({ children, style }: { children: string; style?: any }) {
+  const parts: React.ReactNode[] = [];
+  const regex = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
+  let lastIndex = 0;
+  let match;
+  let key = 0;
+
+  while ((match = regex.exec(children)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(
+        <Text key={key++} style={style}>
+          {children.slice(lastIndex, match.index)}
+        </Text>
+      );
+    }
+
+    if (match[2]) {
+      // **bold**
+      parts.push(
+        <Text key={key++} style={[style, { fontWeight: "700" }]}>
+          {match[2]}
+        </Text>
+      );
+    } else if (match[3]) {
+      // *italic*
+      parts.push(
+        <Text key={key++} style={[style, { fontStyle: "italic" }]}>
+          {match[3]}
+        </Text>
+      );
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < children.length) {
+    parts.push(
+      <Text key={key++} style={style}>
+        {children.slice(lastIndex)}
+      </Text>
+    );
+  }
+
+  return <Text style={style}>{parts}</Text>;
+}
+
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -74,31 +120,20 @@ export default function ChatScreen() {
       const token = await SecureStore.getItemAsync("token");
       const url = api.sendMessageUrl(id);
 
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ content: userMessage }),
-      });
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", url);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
 
-      if (!response.ok) {
-        throw new Error("Failed to send message");
-      }
+        let fullText = "";
+        let lastIndex = 0;
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let fullText = "";
+        xhr.onprogress = () => {
+          const newData = xhr.responseText.substring(lastIndex);
+          lastIndex = xhr.responseText.length;
 
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split("\n");
-
+          const lines = newData.split("\n");
           for (const line of lines) {
             if (line.startsWith("data: ")) {
               try {
@@ -109,7 +144,6 @@ export default function ChatScreen() {
                   scrollToBottom();
                 }
                 if (data.done) {
-                  // Add the complete assistant message
                   const assistantMsg: ChatMessage = {
                     id: `assistant-${Date.now()}`,
                     role: "assistant",
@@ -124,11 +158,22 @@ export default function ChatScreen() {
               }
             }
           }
-        }
-      }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(new Error("Failed to send message"));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error("Network error"));
+
+        xhr.send(JSON.stringify({ content: userMessage }));
+      });
     } catch (error) {
       console.error("Send message error:", error);
-      // Add error message
       setMessages((prev) => [
         ...prev,
         {
@@ -160,16 +205,49 @@ export default function ChatScreen() {
             <Text style={styles.assistantLabelText}>DeenyAI</Text>
           </View>
         )}
-        <Text
+        <FormattedText
           style={[
             styles.messageText,
             isUser ? styles.userText : styles.assistantText,
           ]}
         >
           {item.content}
-        </Text>
+        </FormattedText>
       </View>
     );
+  };
+
+  const renderFooter = () => {
+    if (streamingText) {
+      return (
+        <View style={[styles.messageBubble, styles.assistantBubble]}>
+          <View style={styles.assistantLabel}>
+            <Ionicons name="sparkles" size={14} color={colors.primary} />
+            <Text style={styles.assistantLabelText}>DeenyAI</Text>
+          </View>
+          <FormattedText style={[styles.messageText, styles.assistantText]}>
+            {streamingText}
+          </FormattedText>
+        </View>
+      );
+    }
+
+    if (sending) {
+      return (
+        <View style={[styles.messageBubble, styles.assistantBubble]}>
+          <View style={styles.assistantLabel}>
+            <Ionicons name="sparkles" size={14} color={colors.primary} />
+            <Text style={styles.assistantLabelText}>DeenyAI</Text>
+          </View>
+          <View style={styles.thinkingContainer}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.thinkingText}>Thinking...</Text>
+          </View>
+        </View>
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -202,19 +280,7 @@ export default function ChatScreen() {
             </Text>
           </View>
         }
-        ListFooterComponent={
-          streamingText ? (
-            <View style={[styles.messageBubble, styles.assistantBubble]}>
-              <View style={styles.assistantLabel}>
-                <Ionicons name="sparkles" size={14} color={colors.primary} />
-                <Text style={styles.assistantLabelText}>DeenyAI</Text>
-              </View>
-              <Text style={[styles.messageText, styles.assistantText]}>
-                {streamingText}
-              </Text>
-            </View>
-          ) : null
-        }
+        ListFooterComponent={renderFooter}
       />
 
       <View style={styles.inputContainer}>
@@ -294,6 +360,16 @@ const styles = StyleSheet.create({
   messageText: { fontSize: 15, lineHeight: 22 },
   userText: { color: colors.white },
   assistantText: { color: colors.text },
+  thinkingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  thinkingText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontStyle: "italic",
+  },
   inputContainer: {
     flexDirection: "row",
     alignItems: "flex-end",

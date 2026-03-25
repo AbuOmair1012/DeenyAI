@@ -1,4 +1,5 @@
 import { Router, Response } from "express";
+import multer from "multer";
 import { authenticate, requireAdmin, AuthRequest } from "../middleware/auth";
 import {
   getReferences,
@@ -14,7 +15,13 @@ import {
   getAdminStats,
   createCountryRuling,
   getCountryRulings,
+  createDocumentChunks,
+  deleteChunksByReference,
 } from "../storage";
+import { extractAndChunk } from "../services/pdf";
+import { generateEmbeddings } from "../services/embeddings";
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
 const router = Router();
 
@@ -152,6 +159,72 @@ router.delete("/references/:id", async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+// ─── PDF Upload (RAG) ───────────────────────────────────────────────────────
+
+router.post(
+  "/references/upload-pdf",
+  upload.single("file"),
+  async (req: AuthRequest, res: Response) => {
+    try {
+      const file = req.file;
+      if (!file) {
+        res.status(400).json({ error: "PDF file is required" });
+        return;
+      }
+
+      const { title, source, sourceType, madhab, country, tags } = req.body;
+
+      if (!title || !source || !sourceType) {
+        res.status(400).json({ error: "title, source, and sourceType are required" });
+        return;
+      }
+
+      // 1. Extract text and chunk the PDF
+      const chunks = await extractAndChunk(file.buffer);
+
+      if (chunks.length === 0) {
+        res.status(400).json({ error: "No text could be extracted from the PDF" });
+        return;
+      }
+
+      // 2. Generate embeddings for all chunks
+      const chunkTexts = chunks.map((c) => c.content);
+      const embeddings = await generateEmbeddings(chunkTexts);
+
+      // 3. Create the reference record
+      const parsedTags = tags ? (typeof tags === "string" ? JSON.parse(tags) : tags) : null;
+      const ref = await createReference({
+        title,
+        content: `PDF document with ${chunks.length} chunks`,
+        source,
+        sourceType,
+        madhab: madhab || null,
+        country: country || null,
+        tags: parsedTags,
+      });
+
+      // 4. Create document chunks with embeddings
+      const chunkRecords = chunks.map((chunk, i) => ({
+        referenceId: ref.id,
+        content: chunk.content,
+        embedding: embeddings[i],
+        chunkIndex: i,
+        pageNumber: chunk.pageNumber,
+      }));
+
+      await createDocumentChunks(chunkRecords);
+
+      res.status(201).json({
+        ...ref,
+        chunksCount: chunks.length,
+      });
+    } catch (error) {
+      console.error("PDF upload error:", error);
+      res.status(500).json({ error: "Failed to process PDF" });
+    }
+  }
+);
 
 // ─── Categories CRUD ─────────────────────────────────────────────────────────
 

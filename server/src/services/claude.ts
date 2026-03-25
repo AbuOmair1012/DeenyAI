@@ -1,43 +1,55 @@
-import Anthropic from "@anthropic-ai/sdk";
-import type { Reference, Message } from "@deenyai/shared";
+import OpenAI from "openai";
 import { MADHAB_LABELS, type Madhab } from "@deenyai/shared";
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+let _deepseek: OpenAI;
+
+export function getDeepSeek() {
+  if (!_deepseek) _deepseek = new OpenAI({
+    baseURL: "https://api.deepseek.com",
+    apiKey: process.env.DEEPSEEK_API_KEY!,
+  });
+  return _deepseek;
+}
+
+interface RetrievedChunk {
+  content: string;
+  source: string;
+  title: string;
+  similarity: number;
+}
 
 function buildSystemPrompt(
   madhab: string,
   country: string,
-  relevantRefs: Reference[]
+  chunks: RetrievedChunk[]
 ): string {
   const madhabLabel =
     MADHAB_LABELS[madhab as Madhab]?.en || madhab;
 
-  let refContext = "";
-  if (relevantRefs.length > 0) {
-    const refBlocks = relevantRefs
+  let sourcesContext = "";
+  if (chunks.length > 0) {
+    const sourceBlocks = chunks
       .map(
-        (r, i) =>
-          `[${i + 1}] ${r.title} (Source: ${r.source}, Type: ${r.sourceType})\n${r.content}`
+        (c, i) =>
+          `[${i + 1}] "${c.title}" (Source: ${c.source})\n${c.content}`
       )
       .join("\n---\n");
 
-    refContext = `\n\nRELEVANT REFERENCES FROM VERIFIED SOURCES:\n---\n${refBlocks}\n---\nUse these references to inform your answer. Cite them by number when applicable.\nIf these references do not cover the question, use your general knowledge but clearly indicate which parts are from verified sources vs. general knowledge.`;
+    sourcesContext = `\n\nSOURCES FROM KNOWLEDGE BASE:\n---\n${sourceBlocks}\n---`;
   }
 
-  return `You are DeenyAI, a knowledgeable and compassionate Islamic scholar assistant. You provide answers grounded in authentic Islamic scholarship.
+  return `You are DeenyAI, a knowledgeable and compassionate Islamic scholar assistant.
 
-IMPORTANT RULES:
+CRITICAL RULE: You must answer ONLY based on the sources provided below. Do NOT use any outside knowledge or general information. If the provided sources do not contain enough information to answer the question, clearly state: "I don't have enough information in my knowledge base to answer this question. Please consult a local scholar."
+
+ADDITIONAL RULES:
 1. Always answer according to the ${madhabLabel} school of thought (madhhab) unless the user explicitly asks about another school.
-2. The user is located in ${country}. Consider any country-specific rulings or fatwa council decisions relevant to their location.
-3. Always cite your sources. Reference specific Quran verses (with surah and ayah numbers), hadith (with collection and narrator), or scholarly works.
-4. If there is a difference of opinion among scholars within the ${madhabLabel} school, mention the strongest/most accepted opinion first, then note alternatives.
-5. If the question falls outside Islamic jurisprudence or you are uncertain, clearly state that and recommend the user consult a local scholar.
-6. Be respectful, compassionate, and educational in tone.
-7. Format references clearly at the end of your response.
-8. Respond in the same language the user writes in.
-9. Never provide medical, legal, or financial advice — only Islamic scholarly guidance.${refContext}`;
+2. The user is located in ${country}. Consider any country-specific rulings relevant to their location.
+3. Cite the source numbers [1], [2], etc. when referencing information from the provided sources.
+4. If there is a difference of opinion among scholars within the ${madhabLabel} school, mention the strongest/most accepted opinion first.
+5. Be respectful, compassionate, and educational in tone.
+6. Respond in the same language the user writes in.
+7. Never provide medical, legal, or financial advice — only Islamic scholarly guidance.${sourcesContext}`;
 }
 
 export async function* streamChatResponse(
@@ -45,31 +57,30 @@ export async function* streamChatResponse(
   conversationHistory: { role: "user" | "assistant"; content: string }[],
   madhab: string,
   country: string,
-  relevantRefs: Reference[]
+  chunks: RetrievedChunk[]
 ): AsyncGenerator<string> {
-  const systemPrompt = buildSystemPrompt(madhab, country, relevantRefs);
+  const systemPrompt = buildSystemPrompt(madhab, country, chunks);
 
-  const messagesForApi = conversationHistory.map((m) => ({
-    role: m.role as "user" | "assistant",
-    content: m.content,
-  }));
+  const messages: OpenAI.ChatCompletionMessageParam[] = [
+    { role: "system", content: systemPrompt },
+    ...conversationHistory.map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    })),
+    { role: "user" as const, content: userMessage },
+  ];
 
-  // Add the current user message
-  messagesForApi.push({ role: "user", content: userMessage });
-
-  const stream = anthropic.messages.stream({
-    model: "claude-sonnet-4-20250514",
+  const stream = await getDeepSeek().chat.completions.create({
+    model: "deepseek-chat",
+    messages,
+    stream: true,
     max_tokens: 2048,
-    system: systemPrompt,
-    messages: messagesForApi,
   });
 
-  for await (const event of stream) {
-    if (
-      event.type === "content_block_delta" &&
-      event.delta.type === "text_delta"
-    ) {
-      yield event.delta.text;
+  for await (const chunk of stream) {
+    const text = chunk.choices[0]?.delta?.content;
+    if (text) {
+      yield text;
     }
   }
 }

@@ -7,6 +7,7 @@ import {
   categories,
   references,
   countryRulings,
+  documentChunks,
 } from "@deenyai/shared";
 import type {
   User,
@@ -21,6 +22,7 @@ import type {
   InsertReference,
   CountryRuling,
   InsertCountryRuling,
+  InsertDocumentChunk,
   AdminStats,
 } from "@deenyai/shared";
 
@@ -286,4 +288,79 @@ export async function getAdminStats(): Promise<AdminStats> {
     totalMessages: messageCount.count,
     activeUsersToday: activeCount.count,
   };
+}
+
+// ─── Document Chunks (RAG) ────────────────────────────────────────────────
+
+export async function createDocumentChunks(
+  chunks: InsertDocumentChunk[]
+): Promise<void> {
+  // Bulk insert in batches of 50
+  for (let i = 0; i < chunks.length; i += 50) {
+    const batch = chunks.slice(i, i + 50);
+    await db.insert(documentChunks).values(batch);
+  }
+}
+
+export async function deleteChunksByReference(
+  referenceId: string
+): Promise<void> {
+  await db
+    .delete(documentChunks)
+    .where(eq(documentChunks.referenceId, referenceId));
+}
+
+export async function searchSimilarChunks(
+  embedding: number[],
+  opts: {
+    madhab?: string;
+    country?: string;
+    limit?: number;
+  } = {}
+): Promise<{ content: string; source: string; title: string; similarity: number }[]> {
+  const limit = opts.limit || 8;
+  const embeddingJson = JSON.stringify(embedding);
+
+  // Cosine similarity via raw SQL on jsonb arrays
+  const cosineSim = sql<number>`(
+    SELECT COALESCE(
+      SUM(a * b) / NULLIF(
+        SQRT(SUM(a * a)) * SQRT(SUM(b * b)),
+        0
+      ),
+      0
+    )
+    FROM unnest(
+      ARRAY(SELECT jsonb_array_elements_text(${documentChunks.embedding})::float8),
+      ARRAY(SELECT jsonb_array_elements_text(${embeddingJson}::jsonb)::float8)
+    ) AS t(a, b)
+  )`;
+
+  const conditions = [eq(references.isActive, true)];
+
+  if (opts.madhab) {
+    conditions.push(
+      or(eq(references.madhab, opts.madhab), sql`${references.madhab} IS NULL`)!
+    );
+  }
+  if (opts.country) {
+    conditions.push(
+      or(eq(references.country, opts.country), sql`${references.country} IS NULL`)!
+    );
+  }
+
+  const results = await db
+    .select({
+      content: documentChunks.content,
+      source: references.source,
+      title: references.title,
+      similarity: cosineSim,
+    })
+    .from(documentChunks)
+    .innerJoin(references, eq(documentChunks.referenceId, references.id))
+    .where(and(...conditions))
+    .orderBy(sql`${cosineSim} DESC`)
+    .limit(limit);
+
+  return results;
 }

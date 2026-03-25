@@ -6,6 +6,7 @@ import type {
   categories,
   references,
   countryRulings,
+  documentChunks,
 } from "./schema";
 
 // Select types (reading from DB)
@@ -15,6 +16,7 @@ export type Message = InferSelectModel<typeof messages>;
 export type Category = InferSelectModel<typeof categories>;
 export type Reference = InferSelectModel<typeof references>;
 export type CountryRuling = InferSelectModel<typeof countryRulings>;
+export type DocumentChunk = InferSelectModel<typeof documentChunks>;
 
 // Insert types (writing to DB)
 export type InsertUser = InferInsertModel<typeof users>;
@@ -23,6 +25,7 @@ export type InsertMessage = InferInsertModel<typeof messages>;
 export type InsertCategory = InferInsertModel<typeof categories>;
 export type InsertReference = InferInsertModel<typeof references>;
 export type InsertCountryRuling = InferInsertModel<typeof countryRulings>;
+export type InsertDocumentChunk = InferInsertModel<typeof documentChunks>;
 
 // API response types
 export type UserPublic = Omit<User, "passwordHash">;
