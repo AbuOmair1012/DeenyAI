@@ -54,7 +54,22 @@
       "Bash(node -e \"const { PDFParse } = require\\(''pdf-parse''\\); console.log\\(PDFParse.toString\\(\\).slice\\(0,200\\)\\)\")",
       "Bash(node -e \"const { PDFParse } = require\\(''pdf-parse''\\); const p = new PDFParse\\({}\\); console.log\\(Object.getOwnPropertyNames\\(Object.getPrototypeOf\\(p\\)\\)\\)\")",
       "Bash(taskkill //F //IM tsx.exe)",
-      "Bash(taskkill //F //IM node.exe)"
+      "Bash(taskkill //F //IM node.exe)",
+      "WebFetch(domain:job-logs.eascdn.net)",
+      "Bash(npx expo:*)",
+      "Bash(npx eas-cli:*)",
+      "Bash(node -e \"const d=JSON.parse\\(require\\(''fs''\\).readFileSync\\(''C:/Users/abdo/AppData/Local/Temp/eas2.json'',''utf8''\\)\\)[0]; console.log\\(d.logFiles[3]\\)\")",
+      "Bash(ls /c/Users/abdo/Desktop/app-work/IslamAI/mobile/android/app/src/main/res/drawable*/splash*)",
+      "Bash(cmd.exe /c \"dir C:\\\\IslamAI\\\\mobile\\\\android\\\\app 2>&1\")",
+      "Bash(powershell.exe -Command \"New-Item -ItemType Junction -Path ''C:\\\\IslamAI'' -Target ''C:\\\\Users\\\\abdo\\\\Desktop\\\\app-work\\\\IslamAI'' -ErrorAction SilentlyContinue; Test-Path ''C:\\\\IslamAI\\\\mobile\\\\android''\")",
+      "Bash(export JAVA_HOME=\"/c/Program Files/Microsoft/jdk-17.0.18.8-hotspot\")",
+      "Bash(export PATH=\"$JAVA_HOME/bin:$PATH\")",
+      "Bash(export ANDROID_HOME=\"$LOCALAPPDATA/Android/Sdk\")",
+      "Read(//c/IslamAI/mobile/android/**)",
+      "Bash(./gradlew assembleRelease)",
+      "Bash(rm -rf /c/IslamAI/mobile/node_modules/react-native-reanimated/android/.cxx)",
+      "Bash(rm -rf /c/IslamAI/mobile/android/app/.cxx)",
+      "Bash(rm -rf /c/IslamAI/mobile/android/app/build)"
     ]
   }
 }

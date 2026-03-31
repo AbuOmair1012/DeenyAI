@@ -6,8 +6,10 @@
     "orientation": "portrait",
     "scheme": "deenyai",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
       "backgroundColor": "#0D7377"
     },
     "android": {
@@ -19,6 +21,14 @@
       "expo-secure-store",
       "expo-asset",
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "0bfe4b5f-5bb6-47f9-bdd0-9d0c1656e1f7"
+      }
+    }
   }
 }
