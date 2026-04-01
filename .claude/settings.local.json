@@ -69,7 +69,11 @@
       "Bash(./gradlew assembleRelease)",
       "Bash(rm -rf /c/IslamAI/mobile/node_modules/react-native-reanimated/android/.cxx)",
       "Bash(rm -rf /c/IslamAI/mobile/android/app/.cxx)",
-      "Bash(rm -rf /c/IslamAI/mobile/android/app/build)"
+      "Bash(rm -rf /c/IslamAI/mobile/android/app/build)",
+      "Bash(ipconfig /flushdns)",
+      "Bash(node -e \"require\\('dns'\\).lookup\\('db.veeivfudvzqnttgilhxn.supabase.co', \\(e,a\\) => console.log\\(e ? 'Still FAIL: '+e.message : 'NOW OK, IP: '+a\\)\\)\")",
+      "Bash(cmd.exe:*)",
+      "Bash(node:*)"
     ]
   }
 }

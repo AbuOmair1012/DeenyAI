@@ -1,6 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 
-const API_URL = "http://10.251.25.80:3000/api"; // Your local network IP
+const API_URL = "http://192.168.0.188:3000/api"; // Your local network IP
 
 async function getToken(): Promise<string | null> {
   return SecureStore.getItemAsync("token");

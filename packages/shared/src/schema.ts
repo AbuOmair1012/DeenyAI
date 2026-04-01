@@ -83,7 +83,7 @@ export const selectCategorySchema = createSelectSchema(categories);
 
 // ─── References (Islamic Knowledge Base) ─────────────────────────────────────
 
-export const references = pgTable("references", {
+export const references = pgTable("references_", {
   id: varchar("id", { length: 36 })
     .primaryKey()
     .default(sql`gen_random_uuid()`),

@@ -60,6 +60,10 @@ export const adminApi = {
 
   // Users
   getUsers: () => request<any[]>("/admin/users"),
+  createUser: (data: { email: string; password: string; firstName?: string; lastName?: string; isAdmin?: boolean }) =>
+    request<any>("/admin/users", { method: "POST", body: JSON.stringify(data) }),
+  setUserPassword: (id: string, password: string) =>
+    request<any>(`/admin/users/${id}/password`, { method: "PATCH", body: JSON.stringify({ password }) }),
 
   // References
   getReferences: (params?: Record<string, string>) => {

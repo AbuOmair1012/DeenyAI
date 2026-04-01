@@ -8,6 +8,7 @@ export function getDb(): NodePgDatabase<typeof schema> {
   if (!_db) {
     const pool = new pg.Pool({
       connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
     });
     _db = drizzle(pool, { schema });
   }

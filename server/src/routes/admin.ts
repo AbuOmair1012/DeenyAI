@@ -1,4 +1,5 @@
 import { Router, Response } from "express";
+import bcrypt from "bcrypt";
 import multer from "multer";
 import { authenticate, requireAdmin, AuthRequest } from "../middleware/auth";
 import {
@@ -12,6 +13,9 @@ import {
   updateCategory,
   deleteCategory,
   getAllUsers,
+  getUserByEmail,
+  createUser,
+  updateUser,
   getAdminStats,
   createCountryRuling,
   getCountryRulings,
@@ -49,6 +53,48 @@ router.get("/users", async (_req: AuthRequest, res: Response) => {
     res.json(usersPublic);
   } catch (error) {
     console.error("Admin users error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/users", async (req: AuthRequest, res: Response) => {
+  try {
+    const { email, password, firstName, lastName, isAdmin } = req.body;
+    if (!email || !password) {
+      res.status(400).json({ error: "Email and password are required" });
+      return;
+    }
+
+    const existing = await getUserByEmail(email);
+    if (existing) {
+      res.status(409).json({ error: "Email already registered" });
+      return;
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    const user = await createUser({ email, passwordHash, firstName, lastName, isAdmin: !!isAdmin, onboardingComplete: true });
+    const { passwordHash: _, ...userPublic } = user;
+    res.status(201).json(userPublic);
+  } catch (error) {
+    console.error("Admin create user error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.patch("/users/:id/password", async (req: AuthRequest, res: Response) => {
+  try {
+    const { password } = req.body;
+    if (!password) {
+      res.status(400).json({ error: "Password is required" });
+      return;
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    const user = await updateUser(req.params.id, { passwordHash } as any);
+    const { passwordHash: _, ...userPublic } = user;
+    res.json(userPublic);
+  } catch (error) {
+    console.error("Admin set password error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
