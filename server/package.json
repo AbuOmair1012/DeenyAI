@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "esbuild src/index.ts --bundle --platform=node --outfile=dist/index.js --packages=external",
+    "build": "esbuild src/index.ts --bundle --platform=node --outfile=dist/index.js --external:pg-native --external:bcrypt --external:@mapbox/node-pre-gyp --external:mock-aws-s3 --external:aws-sdk --external:nock",
     "start": "node dist/index.js"
   },
   "dependencies": {
