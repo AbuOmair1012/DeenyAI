@@ -5,3 +5,4 @@ dist/
 .expo/
 android/
 ios/
+supabase_db_pass.txt
