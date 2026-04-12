@@ -1,20 +1,25 @@
 {
   "expo": {
-    "name": "DeenyAI",
+    "name": "Ask Deeny",
     "slug": "deenyai",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "deenyai",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
+    "icon": "./assets/AskDeenyLogo.png",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/AskDeenyLogo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0D7377"
+      "backgroundColor": "#0F503A"
     },
     "android": {
-      "backgroundColor": "#0D7377",
-      "package": "com.deenyai.app"
+      "backgroundColor": "#0F503A",
+      "package": "com.deenyai.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/AskDeenyLogo.png",
+        "backgroundColor": "#0F503A"
+      }
     },
     "plugins": [
       "expo-router",

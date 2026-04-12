@@ -83,7 +83,7 @@ export const selectCategorySchema = createSelectSchema(categories);
 
 // ─── References (Islamic Knowledge Base) ─────────────────────────────────────
 
-export const references = pgTable("references_", {
+export const references = pgTable("references", {
   id: varchar("id", { length: 36 })
     .primaryKey()
     .default(sql`gen_random_uuid()`),
@@ -98,6 +98,7 @@ export const references = pgTable("references_", {
   categoryId: varchar("category_id", { length: 36 }).references(
     () => categories.id
   ),
+  author: varchar("author", { length: 255 }),
   tags: jsonb("tags").$type<string[]>(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

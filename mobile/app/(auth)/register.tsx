@@ -9,9 +9,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
 } from "react-native";
 import { Link, router } from "expo-router";
 import { useAuth } from "../../hooks/useAuth";
+import { useLanguage } from "../../hooks/useLanguage";
 import { colors } from "../../theme/colors";
 
 export default function RegisterScreen() {
@@ -22,27 +24,28 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const register = useAuth((s) => s.register);
+  const t = useLanguage((s) => s.t);
+  const isRTL = useLanguage((s) => s.isRTL);
 
   const handleRegister = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Email and password are required");
+      Alert.alert(t.error, t.emailRequired);
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
+      Alert.alert(t.error, t.passwordsNotMatch);
       return;
     }
     if (password.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters");
+      Alert.alert(t.error, t.passwordTooShort);
       return;
     }
-
     setLoading(true);
     try {
       await register(email, password, firstName, lastName);
       router.replace("/");
     } catch (error: any) {
-      Alert.alert("Registration Failed", error.message);
+      Alert.alert(t.registrationFailed, error.message);
     } finally {
       setLoading(false);
     }
@@ -53,57 +56,63 @@ export default function RegisterScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <Text style={styles.logo}>DeenyAI</Text>
-          <Text style={styles.subtitle}>Create your account</Text>
+          <Image
+            source={require("../../assets/AskDeenyLogo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.appName}>{t.appName}</Text>
+          <Text style={styles.subtitle}>{t.createAccount}</Text>
         </View>
 
         <View style={styles.form}>
           <View style={styles.row}>
             <TextInput
-              style={[styles.input, styles.halfInput]}
-              placeholder="First Name"
+              style={[styles.input, styles.halfInput, isRTL && styles.inputRTL]}
+              placeholder={t.firstName}
               placeholderTextColor={colors.textLight}
               value={firstName}
               onChangeText={setFirstName}
+              textAlign={isRTL ? "right" : "left"}
             />
             <TextInput
-              style={[styles.input, styles.halfInput]}
-              placeholder="Last Name"
+              style={[styles.input, styles.halfInput, isRTL && styles.inputRTL]}
+              placeholder={t.lastName}
               placeholderTextColor={colors.textLight}
               value={lastName}
               onChangeText={setLastName}
+              textAlign={isRTL ? "right" : "left"}
             />
           </View>
-
           <TextInput
-            style={styles.input}
-            placeholder="Email"
+            style={[styles.input, isRTL && styles.inputRTL]}
+            placeholder={t.email}
             placeholderTextColor={colors.textLight}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
             keyboardType="email-address"
+            textAlign={isRTL ? "right" : "left"}
           />
           <TextInput
-            style={styles.input}
-            placeholder="Password"
+            style={[styles.input, isRTL && styles.inputRTL]}
+            placeholder={t.password}
             placeholderTextColor={colors.textLight}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            textAlign={isRTL ? "right" : "left"}
           />
           <TextInput
-            style={styles.input}
-            placeholder="Confirm Password"
+            style={[styles.input, isRTL && styles.inputRTL]}
+            placeholder={t.confirmPassword}
             placeholderTextColor={colors.textLight}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
+            textAlign={isRTL ? "right" : "left"}
           />
 
           <TouchableOpacity
@@ -112,14 +121,14 @@ export default function RegisterScreen() {
             disabled={loading}
           >
             <Text style={styles.buttonText}>
-              {loading ? "Creating account..." : "Create Account"}
+              {loading ? t.creatingAccount : t.createAccount}
             </Text>
           </TouchableOpacity>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
+            <Text style={styles.footerText}>{t.alreadyHaveAccount} </Text>
             <Link href="/(auth)/login" style={styles.link}>
-              Sign In
+              {t.signIn}
             </Link>
           </View>
         </View>
@@ -130,23 +139,16 @@ export default function RegisterScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  scroll: {
-    flexGrow: 1,
-    justifyContent: "center",
-    padding: 24,
-  },
-  header: { alignItems: "center", marginBottom: 40 },
-  logo: {
-    fontSize: 42,
+  scroll: { flexGrow: 1, justifyContent: "center", padding: 24 },
+  header: { alignItems: "center", marginBottom: 36 },
+  logo: { width: 80, height: 80, marginBottom: 10 },
+  appName: {
+    fontSize: 34,
     fontWeight: "800",
     color: colors.primary,
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
-  subtitle: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    marginTop: 8,
-  },
+  subtitle: { fontSize: 15, color: colors.textSecondary, marginTop: 6 },
   form: { gap: 16 },
   row: { flexDirection: "row", gap: 12 },
   input: {
@@ -158,6 +160,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
   },
+  inputRTL: { textAlign: "right" },
   halfInput: { flex: 1 },
   button: {
     backgroundColor: colors.primary,
@@ -167,16 +170,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: {
-    color: colors.white,
-    fontSize: 18,
-    fontWeight: "600",
-  },
-  footer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginTop: 16,
-  },
+  buttonText: { color: colors.white, fontSize: 18, fontWeight: "600" },
+  footer: { flexDirection: "row", justifyContent: "center", marginTop: 16 },
   footerText: { color: colors.textSecondary, fontSize: 14 },
   link: { color: colors.primary, fontSize: 14, fontWeight: "600" },
 });

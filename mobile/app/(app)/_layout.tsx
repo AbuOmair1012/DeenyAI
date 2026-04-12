@@ -1,8 +1,11 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../../theme/colors";
+import { useLanguage } from "../../hooks/useLanguage";
 
 export default function AppLayout() {
+  const t = useLanguage((s) => s.t);
+
   return (
     <Tabs
       screenOptions={{
@@ -20,8 +23,8 @@ export default function AppLayout() {
       <Tabs.Screen
         name="chat"
         options={{
-          title: "DeenyAI",
-          tabBarLabel: "Chats",
+          title: t.appName,
+          tabBarLabel: t.chats,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="chatbubbles-outline" size={size} color={color} />
           ),
@@ -30,7 +33,8 @@ export default function AppLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Settings",
+          title: t.settings,
+          tabBarLabel: t.settings,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="settings-outline" size={size} color={color} />
           ),

@@ -10,11 +10,14 @@ import {
 import { router, useFocusEffect, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../../services/api";
+import { useLanguage } from "../../../hooks/useLanguage";
 import { colors } from "../../../theme/colors";
 
 export default function ChatListScreen() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const t = useLanguage((s) => s.t);
+  const isRTL = useLanguage((s) => s.isRTL);
 
   const loadSessions = async () => {
     try {
@@ -27,26 +30,22 @@ export default function ChatListScreen() {
     }
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      loadSessions();
-    }, [])
-  );
+  useFocusEffect(useCallback(() => { loadSessions(); }, []));
 
   const handleNewChat = async () => {
     try {
       const session = await api.createSession();
       router.push(`/(app)/chat/${session.id}`);
     } catch (error: any) {
-      Alert.alert("Error", error.message);
+      Alert.alert(t.error, error.message);
     }
   };
 
   const handleDeleteSession = (id: string) => {
-    Alert.alert("Delete Chat", "Are you sure you want to delete this chat?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t.deleteChat, t.deleteConfirm, [
+      { text: t.cancel, style: "cancel" },
       {
-        text: "Delete",
+        text: t.delete,
         style: "destructive",
         onPress: async () => {
           await api.deleteSession(id);
@@ -59,12 +58,10 @@ export default function ChatListScreen() {
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
     const now = new Date();
-    const diff = now.getTime() - d.getTime();
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    if (days === 0) return "Today";
-    if (days === 1) return "Yesterday";
-    if (days < 7) return `${days} days ago`;
+    const days = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+    if (days === 0) return t.today;
+    if (days === 1) return t.yesterday;
+    if (days < 7) return t.daysAgo(days);
     return d.toLocaleDateString();
   };
 
@@ -74,15 +71,9 @@ export default function ChatListScreen() {
 
       {sessions.length === 0 && !loading ? (
         <View style={styles.empty}>
-          <Ionicons
-            name="chatbubble-ellipses-outline"
-            size={80}
-            color={colors.border}
-          />
-          <Text style={styles.emptyTitle}>No conversations yet</Text>
-          <Text style={styles.emptySubtitle}>
-            Start a new chat to ask your Islamic questions
-          </Text>
+          <Ionicons name="chatbubble-ellipses-outline" size={80} color={colors.border} />
+          <Text style={styles.emptyTitle}>{t.noConversations}</Text>
+          <Text style={styles.emptySubtitle}>{t.startNewChat}</Text>
         </View>
       ) : (
         <FlatList
@@ -91,27 +82,23 @@ export default function ChatListScreen() {
           contentContainerStyle={styles.list}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={styles.session}
+              style={[styles.session, isRTL && styles.sessionRTL]}
               onPress={() => router.push(`/(app)/chat/${item.id}`)}
               onLongPress={() => handleDeleteSession(item.id)}
             >
               <View style={styles.sessionIcon}>
-                <Ionicons
-                  name="chatbubble-outline"
-                  size={24}
-                  color={colors.primary}
-                />
+                <Ionicons name="chatbubble-outline" size={24} color={colors.primary} />
               </View>
               <View style={styles.sessionContent}>
-                <Text style={styles.sessionTitle} numberOfLines={1}>
-                  {item.title || "New Chat"}
+                <Text style={[styles.sessionTitle, isRTL && styles.rtlText]} numberOfLines={1}>
+                  {item.title || t.chats}
                 </Text>
-                <Text style={styles.sessionDate}>
+                <Text style={[styles.sessionDate, isRTL && styles.rtlText]}>
                   {formatDate(item.updatedAt)}
                 </Text>
               </View>
               <Ionicons
-                name="chevron-forward"
+                name={isRTL ? "chevron-back" : "chevron-forward"}
                 size={20}
                 color={colors.textLight}
               />
@@ -130,24 +117,10 @@ export default function ChatListScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   list: { padding: 16 },
-  empty: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 32,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: colors.text,
-    marginTop: 16,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 8,
-    textAlign: "center",
-  },
+  rtlText: { textAlign: "right" },
+  empty: { flex: 1, justifyContent: "center", alignItems: "center", padding: 32 },
+  emptyTitle: { fontSize: 20, fontWeight: "600", color: colors.text, marginTop: 16 },
+  emptySubtitle: { fontSize: 14, color: colors.textSecondary, marginTop: 8, textAlign: "center" },
   session: {
     flexDirection: "row",
     alignItems: "center",
@@ -156,22 +129,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 10,
   },
+  sessionRTL: { flexDirection: "row-reverse" },
   sessionIcon: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#E8F5F5",
+    backgroundColor: "#EBF2EE",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
   sessionContent: { flex: 1 },
   sessionTitle: { fontSize: 16, fontWeight: "600", color: colors.text },
-  sessionDate: {
-    fontSize: 12,
-    color: colors.textLight,
-    marginTop: 2,
-  },
+  sessionDate: { fontSize: 12, color: colors.textLight, marginTop: 2 },
   fab: {
     position: "absolute",
     bottom: 24,

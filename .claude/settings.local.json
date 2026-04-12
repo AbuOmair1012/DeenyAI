@@ -73,7 +73,8 @@
       "Bash(ipconfig /flushdns)",
       "Bash(node -e \"require\\('dns'\\).lookup\\('db.veeivfudvzqnttgilhxn.supabase.co', \\(e,a\\) => console.log\\(e ? 'Still FAIL: '+e.message : 'NOW OK, IP: '+a\\)\\)\")",
       "Bash(cmd.exe:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(powershell.exe -Command \"ipconfig\")"
     ]
   }
 }

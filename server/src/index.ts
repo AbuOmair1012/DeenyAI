@@ -12,7 +12,7 @@ import chatRoutes from "./routes/chat";
 import adminRoutes from "./routes/admin";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3005;
 
 app.use(cors());
 app.use(express.json());

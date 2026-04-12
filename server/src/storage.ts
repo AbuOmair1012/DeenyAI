@@ -317,7 +317,7 @@ export async function searchSimilarChunks(
     country?: string;
     limit?: number;
   } = {}
-): Promise<{ content: string; source: string; title: string; similarity: number }[]> {
+): Promise<{ content: string; source: string; title: string; author: string | null; similarity: number }[]> {
   const limit = opts.limit || 8;
   const embeddingJson = JSON.stringify(embedding);
 
@@ -354,6 +354,7 @@ export async function searchSimilarChunks(
       content: documentChunks.content,
       source: references.source,
       title: references.title,
+      author: references.author,
       similarity: cosineSim,
     })
     .from(documentChunks)

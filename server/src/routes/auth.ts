@@ -6,6 +6,7 @@ import {
   generateToken,
   AuthRequest,
 } from "../middleware/auth";
+import type { InsertUser } from "@deenyai/shared";
 
 const router = Router();
 
@@ -97,14 +98,18 @@ router.patch("/me", authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { firstName, lastName, country, madhab } = req.body;
 
-    const updates: Record<string, unknown> = {};
+    const updates: Partial<InsertUser> = {};
     if (firstName !== undefined) updates.firstName = firstName;
     if (lastName !== undefined) updates.lastName = lastName;
     if (country !== undefined) updates.country = country;
     if (madhab !== undefined) updates.madhab = madhab;
 
-    // Mark onboarding complete if country and madhab are set
-    if (country && madhab) {
+    // Mark onboarding complete if user ends up with both country AND madhab
+    // (check existing DB values so partial updates still trigger completion)
+    const currentUser = await getUserById(req.userId!);
+    const finalCountry = (country ?? currentUser?.country);
+    const finalMadhab = (madhab ?? currentUser?.madhab);
+    if (finalCountry && finalMadhab) {
       updates.onboardingComplete = true;
     }
 
