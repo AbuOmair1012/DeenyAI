@@ -1,6 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 
-const API_URL = "http://10.190.58.80:3005/api"; // Your local network IP
+const API_URL = "http://192.168.0.104:3005/api"; // Your local network IP
 // const API_URL = "https://deenyai-production.up.railway.app/api"; 
 
 async function getToken(): Promise<string | null> {
