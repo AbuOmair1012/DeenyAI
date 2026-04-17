@@ -7,8 +7,9 @@ import {
   StyleSheet,
   FlatList,
 } from "react-native";
-import { router, Stack } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useAuth } from "../../hooks/useAuth";
+import { useLanguage } from "../../hooks/useLanguage";
 import { colors } from "../../theme/colors";
 
 const COUNTRIES = [
@@ -45,9 +46,14 @@ const COUNTRIES = [
 ];
 
 export default function CountryScreen() {
+  const { from } = useLocalSearchParams<{ from?: string }>();
+  const fromSettings = from === "settings";
+  const { user, updateProfile } = useAuth();
+  const t = useLanguage((s) => s.t);
+  const isRTL = useLanguage((s) => s.isRTL);
+
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<string | null>(null);
-  const updateProfile = useAuth((s) => s.updateProfile);
+  const [selected, setSelected] = useState<string | null>(user?.country || null);
 
   const filtered = COUNTRIES.filter(
     (c) =>
@@ -58,24 +64,32 @@ export default function CountryScreen() {
   const handleNext = async () => {
     if (!selected) return;
     await updateProfile({ country: selected });
-    router.push("/(onboarding)/madhab");
+    if (fromSettings) {
+      router.back();
+    } else {
+      router.push("/(onboarding)/madhab");
+    }
   };
+
+  const displayName = (c: typeof COUNTRIES[0]) =>
+    isRTL ? c.nameAr : c.name;
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: "Select Your Country" }} />
+      <Stack.Screen
+        options={{ title: fromSettings ? t.countryLabel : t.whereDoYouLive }}
+      />
 
-      <Text style={styles.title}>Where do you live?</Text>
-      <Text style={styles.subtitle}>
-        This helps us provide rulings relevant to your location
-      </Text>
+      <Text style={[styles.title, isRTL && styles.rtlText]}>{t.whereDoYouLive}</Text>
+      <Text style={[styles.subtitle, isRTL && styles.rtlText]}>{t.countrySubtitle}</Text>
 
       <TextInput
-        style={styles.search}
-        placeholder="Search countries..."
+        style={[styles.search, isRTL && styles.inputRTL]}
+        placeholder={t.searchCountries}
         placeholderTextColor={colors.textLight}
         value={search}
         onChangeText={setSearch}
+        textAlign={isRTL ? "right" : "left"}
       />
 
       <FlatList
@@ -84,27 +98,18 @@ export default function CountryScreen() {
         style={styles.list}
         renderItem={({ item }) => (
           <TouchableOpacity
-            style={[
-              styles.item,
-              selected === item.code && styles.itemSelected,
-            ]}
+            style={[styles.item, selected === item.code && styles.itemSelected]}
             onPress={() => setSelected(item.code)}
           >
             <Text
-              style={[
-                styles.itemText,
-                selected === item.code && styles.itemTextSelected,
-              ]}
+              style={[styles.itemText, selected === item.code && styles.itemTextSelected]}
             >
-              {item.name}
+              {displayName(item)}
             </Text>
             <Text
-              style={[
-                styles.itemAr,
-                selected === item.code && styles.itemTextSelected,
-              ]}
+              style={[styles.itemSub, selected === item.code && styles.itemTextSelected]}
             >
-              {item.nameAr}
+              {isRTL ? item.name : item.nameAr}
             </Text>
           </TouchableOpacity>
         )}
@@ -115,7 +120,9 @@ export default function CountryScreen() {
         onPress={handleNext}
         disabled={!selected}
       >
-        <Text style={styles.buttonText}>Next</Text>
+        <Text style={styles.buttonText}>
+          {fromSettings ? t.save : t.next}
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -123,18 +130,9 @@ export default function CountryScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background, padding: 16 },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: colors.text,
-    marginTop: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 4,
-    marginBottom: 16,
-  },
+  title: { fontSize: 24, fontWeight: "700", color: colors.text, marginTop: 8 },
+  subtitle: { fontSize: 14, color: colors.textSecondary, marginTop: 4, marginBottom: 16 },
+  rtlText: { textAlign: "right" },
   search: {
     backgroundColor: colors.surface,
     borderWidth: 1,
@@ -145,6 +143,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginBottom: 12,
   },
+  inputRTL: { textAlign: "right" },
   list: { flex: 1 },
   item: {
     flexDirection: "row",
@@ -157,12 +156,9 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "transparent",
   },
-  itemSelected: {
-    borderColor: colors.primary,
-    backgroundColor: "#E8F5F5",
-  },
+  itemSelected: { borderColor: colors.primary, backgroundColor: "#EBF2EE" },
   itemText: { fontSize: 16, color: colors.text, fontWeight: "500" },
-  itemAr: { fontSize: 16, color: colors.textSecondary },
+  itemSub: { fontSize: 14, color: colors.textSecondary },
   itemTextSelected: { color: colors.primary, fontWeight: "600" },
   button: {
     backgroundColor: colors.primary,

@@ -1,0 +1,22 @@
+name = "deenyai-server"
+main = "src/worker.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "69910388674f4d60b1eef14b531c4d84"
+
+[build]
+command = ""
+
+[define]
+# Stub out node-pre-gyp optional deps that can't bundle in Workers
+
+[alias]
+"mock-aws-s3" = "./src/stubs/empty.ts"
+"aws-sdk" = "./src/stubs/empty.ts"
+"nock" = "./src/stubs/empty.ts"
+"@mapbox/node-pre-gyp" = "./src/stubs/empty.ts"
+"pdf-parse" = "./src/stubs/empty.ts"
+"bcrypt" = "./src/stubs/empty.ts"

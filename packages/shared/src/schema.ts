@@ -98,6 +98,7 @@ export const references = pgTable("references", {
   categoryId: varchar("category_id", { length: 36 }).references(
     () => categories.id
   ),
+  author: varchar("author", { length: 255 }),
   tags: jsonb("tags").$type<string[]>(),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

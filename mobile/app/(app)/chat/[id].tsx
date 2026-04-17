@@ -9,11 +9,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Linking,
 } from "react-native";
 import { useLocalSearchParams, Stack } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
 import { api } from "../../../services/api";
+import { useLanguage } from "../../../hooks/useLanguage";
 import { colors } from "../../../theme/colors";
 
 interface ChatMessage {
@@ -40,14 +42,12 @@ function FormattedText({ children, style }: { children: string; style?: any }) {
     }
 
     if (match[2]) {
-      // **bold**
       parts.push(
         <Text key={key++} style={[style, { fontWeight: "700" }]}>
           {match[2]}
         </Text>
       );
     } else if (match[3]) {
-      // *italic*
       parts.push(
         <Text key={key++} style={[style, { fontStyle: "italic" }]}>
           {match[3]}
@@ -69,6 +69,136 @@ function FormattedText({ children, style }: { children: string; style?: any }) {
   return <Text style={style}>{parts}</Text>;
 }
 
+function parseMessageParts(content: string): { body: string; refs: string | null } {
+  // Split on the references separator the AI outputs
+  const sepIndex = content.search(/\n---\n📚|\n📚 \*\*References|📚 \*\*References/);
+  if (sepIndex !== -1) {
+    return {
+      body: content.slice(0, sepIndex).trim(),
+      refs: content.slice(sepIndex).replace(/^\n---\n/, "").trim(),
+    };
+  }
+  return { body: content, refs: null };
+}
+
+function RefsCard({ content }: { content: string }) {
+  const lines = content
+    .split("\n")
+    .filter((l) => l.trim().length > 0 && !l.startsWith("📚") && !l.startsWith("**References"));
+
+  return (
+    <View style={refStyles.card}>
+      <View style={refStyles.header}>
+        <Ionicons name="book-outline" size={14} color={colors.primary} />
+        <Text style={refStyles.headerText}>References & Sources</Text>
+      </View>
+      {lines.map((line, i) => {
+        const urlMatch = line.match(/https?:\/\/[^\s)>\]]+/);
+        const url = urlMatch ? urlMatch[0].replace(/[.,;]+$/, "") : null;
+        const displayText = line
+          .replace(/\*\*/g, "")
+          .replace(/https?:\/\/[^\s)>\]]+/, "")
+          .replace(/\|\s*$/, "")
+          .trim();
+
+        if (url) {
+          return (
+            <TouchableOpacity
+              key={i}
+              style={refStyles.refRowTappable}
+              onPress={() => Linking.openURL(url)}
+              activeOpacity={0.6}
+            >
+              <View style={refStyles.refRowInner}>
+                <Text style={refStyles.refLine}>{displayText}</Text>
+                <View style={refStyles.openBadge}>
+                  <Ionicons name="open-outline" size={12} color={colors.white} />
+                  <Text style={refStyles.openBadgeText}>Open</Text>
+                </View>
+              </View>
+              <Text style={refStyles.urlText} numberOfLines={1}>
+                {url.replace(/^https?:\/\/(www\.)?/, "")}
+              </Text>
+            </TouchableOpacity>
+          );
+        }
+
+        return (
+          <View key={i} style={refStyles.refRow}>
+            <Text style={refStyles.refLine}>{displayText}</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+const refStyles = StyleSheet.create({
+  card: {
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#0F503A30",
+    paddingTop: 8,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginBottom: 6,
+  },
+  headerText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.primary,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  refRow: {
+    marginBottom: 6,
+    paddingLeft: 4,
+  },
+  refRowTappable: {
+    marginBottom: 8,
+    padding: 8,
+    backgroundColor: "#EBF2EE",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#0F503A20",
+  },
+  refRowInner: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  refLine: {
+    fontSize: 12,
+    color: "#333",
+    lineHeight: 17,
+    flex: 1,
+  },
+  openBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: colors.primary,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
+  openBadgeText: {
+    fontSize: 10,
+    color: colors.white,
+    fontWeight: "600",
+  },
+  urlText: {
+    fontSize: 10,
+    color: colors.primary,
+    marginTop: 3,
+    textDecorationLine: "underline",
+  },
+});
+
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -77,6 +207,8 @@ export default function ChatScreen() {
   const [streamingText, setStreamingText] = useState("");
   const [title, setTitle] = useState("Chat");
   const flatListRef = useRef<FlatList>(null);
+  const t = useLanguage((s) => s.t);
+  const isRTL = useLanguage((s) => s.isRTL);
 
   useEffect(() => {
     loadMessages();
@@ -192,6 +324,10 @@ export default function ChatScreen() {
 
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isUser = item.role === "user";
+    const { body, refs } = isUser
+      ? { body: item.content, refs: null }
+      : parseMessageParts(item.content);
+
     return (
       <View
         style={[
@@ -211,14 +347,16 @@ export default function ChatScreen() {
             isUser ? styles.userText : styles.assistantText,
           ]}
         >
-          {item.content}
+          {body}
         </FormattedText>
+        {refs && <RefsCard content={refs} />}
       </View>
     );
   };
 
   const renderFooter = () => {
     if (streamingText) {
+      const { body, refs } = parseMessageParts(streamingText);
       return (
         <View style={[styles.messageBubble, styles.assistantBubble]}>
           <View style={styles.assistantLabel}>
@@ -226,8 +364,9 @@ export default function ChatScreen() {
             <Text style={styles.assistantLabelText}>DeenyAI</Text>
           </View>
           <FormattedText style={[styles.messageText, styles.assistantText]}>
-            {streamingText}
+            {body}
           </FormattedText>
+          {refs && <RefsCard content={refs} />}
         </View>
       );
     }
@@ -241,7 +380,7 @@ export default function ChatScreen() {
           </View>
           <View style={styles.thinkingContainer}>
             <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={styles.thinkingText}>Thinking...</Text>
+            <Text style={styles.thinkingText}>{t.thinking}</Text>
           </View>
         </View>
       );
@@ -274,9 +413,9 @@ export default function ChatScreen() {
         onContentSizeChange={scrollToBottom}
         ListEmptyComponent={
           <View style={styles.welcomeContainer}>
-            <Text style={styles.welcomeTitle}>Bismillah</Text>
-            <Text style={styles.welcomeText}>
-              Ask any Islamic question and I'll provide answers with authentic references based on your madhab.
+            <Text style={styles.welcomeTitle}>{t.bismillah}</Text>
+            <Text style={[styles.welcomeText, isRTL && styles.rtlText]}>
+              {t.welcomeText}
             </Text>
           </View>
         }
@@ -286,7 +425,7 @@ export default function ChatScreen() {
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Ask a question..."
+          placeholder={t.askQuestion}
           placeholderTextColor={colors.textLight}
           value={input}
           onChangeText={setInput}
@@ -330,6 +469,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 24,
   },
+  rtlText: { textAlign: "right" },
   messageBubble: {
     maxWidth: "85%",
     padding: 14,

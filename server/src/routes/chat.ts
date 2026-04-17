@@ -13,6 +13,7 @@ import {
 } from "../storage";
 import { streamChatResponse } from "../services/claude";
 import { generateEmbedding } from "../services/embeddings";
+import { searchIslamicWeb } from "../services/websearch";
 
 const router = Router();
 
@@ -148,13 +149,19 @@ router.post(
         content: m.content,
       }));
 
-      // Generate embedding for user's question and search for similar chunks
+      // Run local RAG search and web search in parallel
       const queryEmbedding = await generateEmbedding(content);
-      const relevantChunks = await searchSimilarChunks(queryEmbedding, {
-        madhab: user.madhab || undefined,
-        country: user.country || undefined,
-        limit: 8,
-      });
+      const [localChunks, webResults] = await Promise.all([
+        searchSimilarChunks(queryEmbedding, {
+          madhab: user.madhab || undefined,
+          country: user.country || undefined,
+          limit: 6,
+        }),
+        searchIslamicWeb(content, user.madhab || undefined),
+      ]);
+
+      // Combine: local knowledge base first, then web results
+      const relevantChunks = [...localChunks, ...webResults];
 
       // Set up SSE
       res.setHeader("Content-Type", "text/event-stream");
